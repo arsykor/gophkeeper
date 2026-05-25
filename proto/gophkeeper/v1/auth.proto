@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package gophkeeper.v1;
+
+option go_package = "github.com/arsykor/gophkeeper/proto/gophkeeper/v1;gophkeeperv1";
+
+// AuthService handles user registration and login.
+service AuthService {
+  rpc Register(RegisterRequest) returns (AuthResponse);
+  rpc Login(LoginRequest) returns (AuthResponse);
+}
+
+message RegisterRequest {
+  string login = 1;
+  string password = 2;
+}
+
+message LoginRequest {
+  string login = 1;
+  string password = 2;
+}
+
+// AuthResponse is returned on successful register or login.
+message AuthResponse {
+  // JWT token, valid for 24h.
+  string token = 1;
+}
