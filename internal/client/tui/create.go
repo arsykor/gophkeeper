@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -14,12 +15,13 @@ import (
 )
 
 // secretTypeNames lists the choosable types in order.
-var secretTypeNames = []string{"credential", "text", "card"}
+var secretTypeNames = []string{"credential", "text", "card", "binary"}
 
 var secretTypeMap = map[string]pb.SecretType{
 	"credential": pb.SecretType_SECRET_TYPE_CREDENTIAL,
 	"text":       pb.SecretType_SECRET_TYPE_TEXT,
 	"card":       pb.SecretType_SECRET_TYPE_CARD,
+	"binary":     pb.SecretType_SECRET_TYPE_BINARY,
 }
 
 // CreateModel handles creating a new secret.
@@ -62,6 +64,8 @@ func (m *CreateModel) rebuildFields() {
 		m.fields = makeFields([]string{"content"}, []bool{false})
 	case "card":
 		m.fields = makeFields([]string{"number", "holder", "expiry", "cvv"}, []bool{false, false, false, true})
+	case "binary":
+		m.fields = makeFields([]string{"file path"}, []bool{false})
 	}
 }
 
@@ -156,6 +160,25 @@ func (m CreateModel) save() (tea.Model, tea.Cmd) {
 		m.status = err.Error()
 		return m, nil
 	}
+
+	if secretTypeNames[m.typeIdx] == "binary" {
+		filePath := strings.TrimSpace(m.fields[0].Value())
+		if filePath == "" {
+			m.status = "file path is required"
+			return m, nil
+		}
+		client := m.client
+		return m, func() tea.Msg {
+			f, err := os.Open(filePath)
+			if err != nil {
+				return msgSaved{err: fmt.Errorf("cannot open file: %w", err)}
+			}
+			defer f.Close()
+			saved, err := client.UploadFile(context.Background(), name, meta, f)
+			return msgSaved{meta: saved, err: err}
+		}
+	}
+
 	payload := m.buildPayload()
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
@@ -202,9 +225,11 @@ func (m CreateModel) View() string {
 	sb.WriteString("  Tags:  " + m.metaInput.View() + "\n")
 	sb.WriteString(subtleStyle.Render("         optional JSON — leave empty or type {}\n\n"))
 
-	for i, f := range m.fields {
-		_ = i
+	for _, f := range m.fields {
 		sb.WriteString(fmt.Sprintf("  %-10s %s\n", f.Placeholder+":", f.View()))
+	}
+	if secretTypeNames[m.typeIdx] == "binary" {
+		sb.WriteString(subtleStyle.Render("             absolute or relative path to the file\n"))
 	}
 	sb.WriteString("\n")
 	sb.WriteString(subtleStyle.Render("  [Tab] Next  [Enter] Save  [B/Esc] Cancel"))

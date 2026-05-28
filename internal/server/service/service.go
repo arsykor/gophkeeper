@@ -155,23 +155,42 @@ func (s *Service) UploadFile(ctx context.Context, userID, name, metadata string,
 	// Insert placeholder to get the ID first.
 	sec, err := s.secrets.CreateBinarySecret(&postgres.Secret{
 		UserID:   userID,
-		Type:     "binary",
+		Type:     "SECRET_TYPE_BINARY",
 		Name:     name,
 		Metadata: metadata,
 	})
 	if err != nil {
 		return nil, err
 	}
+
+	// Wrap the reader to count actual bytes transferred when size is unknown.
+	cr := &countingReader{r: r}
 	key := minio.ObjectKey(userID, sec.ID)
-	if err := s.files.Upload(ctx, key, r, size, "application/octet-stream"); err != nil {
+	if err := s.files.Upload(ctx, key, cr, size, "application/octet-stream"); err != nil {
 		// Rollback
 		_ = s.secrets.DeleteSecret(sec.ID, userID)
 		return nil, err
 	}
-	if err := s.secrets.UpdateBinarySecret(sec.ID, userID, key, size, sec.Version); err != nil {
+	actualSize := cr.count
+	if size >= 0 {
+		actualSize = size // trust the caller when it knows the size
+	}
+	if err := s.secrets.UpdateBinarySecret(sec.ID, userID, key, actualSize, sec.Version); err != nil {
 		return nil, err
 	}
 	return s.secrets.GetSecret(sec.ID, userID)
+}
+
+// countingReader wraps an io.Reader and records the total bytes read.
+type countingReader struct {
+	r     io.Reader
+	count int64
+}
+
+func (c *countingReader) Read(p []byte) (int, error) {
+	n, err := c.r.Read(p)
+	c.count += int64(n)
+	return n, err
 }
 
 // DownloadFile fetches binary data from MinIO for the given secret.

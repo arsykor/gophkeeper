@@ -207,13 +207,13 @@ func secretToMeta(s *postgres.Secret) *pb.SecretMeta {
 
 func pbSecretType(t string) pb.SecretType {
 	switch t {
-	case "SECRET_TYPE_CREDENTIAL":
+	case "SECRET_TYPE_CREDENTIAL", "credential":
 		return pb.SecretType_SECRET_TYPE_CREDENTIAL
-	case "SECRET_TYPE_TEXT":
+	case "SECRET_TYPE_TEXT", "text":
 		return pb.SecretType_SECRET_TYPE_TEXT
-	case "SECRET_TYPE_BINARY":
+	case "SECRET_TYPE_BINARY", "binary":
 		return pb.SecretType_SECRET_TYPE_BINARY
-	case "SECRET_TYPE_CARD":
+	case "SECRET_TYPE_CARD", "card":
 		return pb.SecretType_SECRET_TYPE_CARD
 	default:
 		return pb.SecretType_SECRET_TYPE_UNSPECIFIED

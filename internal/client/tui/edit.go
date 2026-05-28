@@ -65,6 +65,8 @@ func keysForType(t pb.SecretType) []string {
 		return []string{"content"}
 	case pb.SecretType_SECRET_TYPE_CARD:
 		return []string{"number", "holder", "expiry", "cvv"}
+	case pb.SecretType_SECRET_TYPE_BINARY:
+		return []string{} // binary payload lives in object storage; only tags are editable here
 	default:
 		return []string{"content"}
 	}
@@ -126,20 +128,25 @@ func (m EditModel) updateInputs(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m EditModel) save() (tea.Model, tea.Cmd) {
-	data := make(map[string]string, len(m.keys))
-	for i, k := range m.keys {
-		data[k] = m.fields[i].Value()
-	}
 	metaStr, err := normalizeMetadata(m.metaInput.Value())
 	if err != nil {
 		m.status = err.Error()
 		return m, nil
 	}
-	payloadBytes, err := json.Marshal(data)
-	if err != nil {
-		m.status = "failed to encode secret data"
-		return m, nil
+
+	var payloadBytes []byte
+	if m.meta.Type != pb.SecretType_SECRET_TYPE_BINARY {
+		data := make(map[string]string, len(m.keys))
+		for i, k := range m.keys {
+			data[k] = m.fields[i].Value()
+		}
+		payloadBytes, err = json.Marshal(data)
+		if err != nil {
+			m.status = "failed to encode secret data"
+			return m, nil
+		}
 	}
+
 	client := m.client
 	id := m.meta.Id
 	name := m.meta.Name
@@ -155,9 +162,11 @@ func (m EditModel) View() string {
 	var sb strings.Builder
 	sb.WriteString(boldStyle.Render(fmt.Sprintf("GophKeeper — Edit: %s", m.meta.Name)))
 	sb.WriteString("\n\n")
+	if m.meta.Type == pb.SecretType_SECRET_TYPE_BINARY {
+		sb.WriteString(subtleStyle.Render("  Binary file content lives in object storage and cannot be re-uploaded here.\n  You can only update the tags below.\n\n"))
+	}
 	sb.WriteString("  Tags:  " + m.metaInput.View() + "\n\n")
-	for i, f := range m.fields {
-		_ = i
+	for _, f := range m.fields {
 		sb.WriteString(fmt.Sprintf("  %-10s %s\n", f.Placeholder+":", f.View()))
 	}
 	sb.WriteString("\n")

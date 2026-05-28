@@ -44,3 +44,9 @@ type msgDeleted struct{ err error }
 
 // msgError carries a generic error to display.
 type msgError struct{ err error }
+
+// msgFileDownloaded is sent after a binary file download completes.
+type msgFileDownloaded struct {
+	path string
+	err  error
+}
