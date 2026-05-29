@@ -1,0 +1,9 @@
+with-expecter: true
+outpkg: mocks
+dir: "{{.InterfaceDir}}/mocks"
+packages:
+  github.com/arsykor/gophkeeper/internal/server/service:
+    interfaces:
+      UserRepository:
+      SecretRepository:
+      FileStorage:

@@ -14,6 +14,8 @@ import (
 // ErrInvalidCredentials is returned when login/password do not match.
 var ErrInvalidCredentials = errors.New("invalid credentials")
 
+//go:generate mockery --config ../../../.mockery.yaml
+
 // UserRepository is the storage interface for user operations.
 type UserRepository interface {
 	CreateUser(login, passwordHash string) (string, error)
