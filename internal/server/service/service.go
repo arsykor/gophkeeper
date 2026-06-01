@@ -147,6 +147,8 @@ func (s *Service) DeleteSecret(ctx context.Context, id, userID string) error {
 		return err
 	}
 	if sec.StorageKey != "" {
+		// Best-effort: object storage deletion failure does not block the DB record removal.
+		// TODO: implement an Outbox pattern
 		_ = s.files.Delete(ctx, sec.StorageKey)
 	}
 	return s.secrets.DeleteSecret(id, userID)
