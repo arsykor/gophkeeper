@@ -90,7 +90,7 @@ JWT_SECRET: "change-me-jwt-secret"
 ENCRYPTION_KEY: "a 64-character hex string (32 bytes)"
 ```
 
-## Сборка и запуск клиента
+## Быстрый старт (клиент)
 
 ```bash
 go build -o gophkeeper-client ./cmd/client/
