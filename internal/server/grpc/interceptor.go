@@ -62,12 +62,13 @@ func authenticate(ctx context.Context, authMgr *auth.Manager) (context.Context, 
 	return context.WithValue(ctx, UserIDKey, claims.UserID), nil
 }
 
+var publicMethods = map[string]bool{
+	"/gophkeeper.v1.AuthService/Register": true,
+	"/gophkeeper.v1.AuthService/Login":    true,
+}
+
 func isPublicMethod(method string) bool {
-	public := map[string]bool{
-		"/gophkeeper.v1.AuthService/Register": true,
-		"/gophkeeper.v1.AuthService/Login":    true,
-	}
-	return public[method]
+	return publicMethods[method]
 }
 
 // userIDFromCtx extracts the authenticated user ID from context.
